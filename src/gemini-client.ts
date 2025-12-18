@@ -211,11 +211,6 @@ export class GeminiApiClient {
 			const debugRequest = JSON.parse(JSON.stringify(streamRequest));
 			const req = debugRequest.request as any;
 
-			// Check for thinkingConfig to help debug
-			if (req?.generationConfig?.thinkingConfig) {
-				console.error(`[GeminiAPI Native] Thinking Config detected:`, JSON.stringify(req.generationConfig.thinkingConfig, null, 2));
-			}
-
 			if (req?.contents && Array.isArray(req.contents)) {
 				req.contents.forEach((c: any) => {
 					if (c.parts && Array.isArray(c.parts)) {
@@ -311,17 +306,50 @@ export class GeminiApiClient {
 		const generationConfig: Record<string, unknown> = {};
 
 		if (request.generationConfig) {
-			const gc = request.generationConfig;
-			if (gc.temperature !== undefined) generationConfig.temperature = gc.temperature;
-			if (gc.topP !== undefined) generationConfig.topP = gc.topP;
-			if (gc.topK !== undefined) generationConfig.topK = gc.topK;
-			if (gc.maxOutputTokens !== undefined) generationConfig.maxOutputTokens = gc.maxOutputTokens;
-			if (gc.stopSequences !== undefined) generationConfig.stopSequences = gc.stopSequences;
-			if (gc.presencePenalty !== undefined) generationConfig.presencePenalty = gc.presencePenalty;
-			if (gc.frequencyPenalty !== undefined) generationConfig.frequencyPenalty = gc.frequencyPenalty;
-			if (gc.seed !== undefined) generationConfig.seed = gc.seed;
-			if (gc.responseMimeType !== undefined) generationConfig.responseMimeType = gc.responseMimeType;
-			if (gc.thinkingConfig !== undefined) generationConfig.thinkingConfig = gc.thinkingConfig;
+			console.log("[GeminiAPI] generationConfig received:", JSON.stringify(request.generationConfig, null, 2));
+			const gc = request.generationConfig as any;
+			// Copy all properties from request.generationConfig to ensure nothing is missed
+			// This handles both camelCase and snake_case properties that might be sent by clients
+			for (const [key, value] of Object.entries(gc)) {
+				if (value !== undefined) {
+					// Convert snake_case keys to camelCase for Gemini API compatibility
+					if (key === "thinking_config") {
+						generationConfig["thinkingConfig"] = value;
+					} else if (key === "max_output_tokens") {
+						generationConfig["maxOutputTokens"] = value;
+					} else if (key === "stop_sequences") {
+						generationConfig["stopSequences"] = value;
+					} else if (key === "response_mime_type") {
+						generationConfig["responseMimeType"] = value;
+					} else if (key === "presence_penalty") {
+						generationConfig["presencePenalty"] = value;
+					} else if (key === "frequency_penalty") {
+						generationConfig["frequencyPenalty"] = value;
+					} else {
+						generationConfig[key] = value;
+					}
+				}
+			}
+
+			// Special handling for thinkingConfig internal fields to ensure they are in camelCase
+			if (generationConfig.thinkingConfig && typeof generationConfig.thinkingConfig === "object") {
+				const tc = generationConfig.thinkingConfig as any;
+				const newTc: Record<string, unknown> = {};
+				for (const [key, value] of Object.entries(tc)) {
+					if (key === "include_thoughts") {
+						newTc["includeThoughts"] = value;
+					} else if (key === "thinking_budget") {
+						newTc["thinkingBudget"] = value;
+					} else if (key === "thinking_level") {
+						newTc["thinkingLevel"] = value;
+					} else {
+						newTc[key] = value;
+					}
+				}
+				generationConfig.thinkingConfig = newTc;
+			}
+		} else {
+			console.log("[GeminiAPI] generationConfig not received");
 		}
 
 		const contents = this.convertContentsToNativeFormat(request.contents);
@@ -398,7 +426,6 @@ export class GeminiApiClient {
 				body: JSON.stringify(streamRequest),
 				signal: controller.signal
 			});
-			this.logRequestBodyForDebug(streamRequest, response.status);
 
 			clearTimeout(timeoutId);
 
