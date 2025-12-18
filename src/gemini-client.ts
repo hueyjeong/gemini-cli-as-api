@@ -211,6 +211,11 @@ export class GeminiApiClient {
 			const debugRequest = JSON.parse(JSON.stringify(streamRequest));
 			const req = debugRequest.request as any;
 
+			// Check for thinkingConfig to help debug
+			if (req?.generationConfig?.thinkingConfig) {
+				console.error(`[GeminiAPI Native] Thinking Config detected:`, JSON.stringify(req.generationConfig.thinkingConfig, null, 2));
+			}
+
 			if (req?.contents && Array.isArray(req.contents)) {
 				req.contents.forEach((c: any) => {
 					if (c.parts && Array.isArray(c.parts)) {
@@ -393,6 +398,7 @@ export class GeminiApiClient {
 				body: JSON.stringify(streamRequest),
 				signal: controller.signal
 			});
+			this.logRequestBodyForDebug(streamRequest, response.status);
 
 			clearTimeout(timeoutId);
 
