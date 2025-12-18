@@ -1,8 +1,19 @@
 # 🚀 Gemini CLI Native API
 
-[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/mrproper)
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/gewoonjaap)
 
 Google's Gemini models Native API using Cloudflare Workers. Access Google's most advanced AI models through Gemini-native API patterns, powered by OAuth2 authentication and the same infrastructure that drives the official Gemini CLI.
+
+이 프로젝트는 https://github.com/GewoonJaap/gemini-cli-openai 를 기반으로 만들어졌습니다.
+
+## ✅ Tested On
+
+This API has been successfully tested with:
+- **Direct Connection**:
+  - 🤖 Roo Code
+- **Through LiteLLM**:
+  - 👨‍💻 GitHub Copilot
+  - 🔮 Cursor
 
 ## ✨ Features
 

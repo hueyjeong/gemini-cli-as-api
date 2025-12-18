@@ -9,7 +9,7 @@ export const geminiCliModels: Record<string, ModelInfo> = {
 		supportsPromptCache: false,
 		inputPrice: 0,
 		outputPrice: 0,
-		description: "Google's Gemini 3.0 Pro Preview model via OAuth (free tier)",
+		description: "Google's Gemini 3.0 Pro Preview model via OAuth",
 		thinking: true
 	},
 	"gemini-3-flash-preview": {
@@ -19,7 +19,7 @@ export const geminiCliModels: Record<string, ModelInfo> = {
 		supportsPromptCache: false,
 		inputPrice: 0,
 		outputPrice: 0,
-		description: "Google's Gemini 3.0 Flash Preview model via OAuth (free tier)",
+		description: "Google's Gemini 3.0 Flash Preview model via OAuth",
 		thinking: true
 	},
 	"gemini-2.5-pro": {
@@ -29,7 +29,7 @@ export const geminiCliModels: Record<string, ModelInfo> = {
 		supportsPromptCache: false,
 		inputPrice: 0,
 		outputPrice: 0,
-		description: "Google's Gemini 2.5 Pro model via OAuth (free tier)",
+		description: "Google's Gemini 2.5 Pro model via OAuth",
 		thinking: true
 	},
 	"gemini-2.5-flash": {
@@ -39,7 +39,7 @@ export const geminiCliModels: Record<string, ModelInfo> = {
 		supportsPromptCache: false,
 		inputPrice: 0,
 		outputPrice: 0,
-		description: "Google's Gemini 2.5 Flash model via OAuth (free tier)",
+		description: "Google's Gemini 2.5 Flash model via OAuth",
 		thinking: true
 	},
 	"gemini-2.5-flash-lite": {
@@ -49,7 +49,7 @@ export const geminiCliModels: Record<string, ModelInfo> = {
 		supportsPromptCache: false,
 		inputPrice: 0,
 		outputPrice: 0,
-		description: "Google's Gemini 2.5 Flash Lite model via OAuth (free tier)",
+		description: "Google's Gemini 2.5 Flash Lite model via OAuth",
 		thinking: true
 	}
 };

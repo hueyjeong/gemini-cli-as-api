@@ -1,20 +1,19 @@
-# Gemini CLI OpenAI Worker Environment Variables
+# Gemini CLI Worker 환경 변수 설정 예시
 
-# Required: OAuth2 credentials JSON from Gemini CLI authentication
-# Get this by running `gemini auth` and copying the contents of ~/.gemini/oauth_creds.json
+# [필수] Gemini CLI 인증을 통해 얻은 OAuth2 자격 증명 JSON
+# `gemini auth`를 실행하고 ~/.gemini/oauth_creds.json 파일의 내용을 복사하여 붙여넣으세요.
 GCP_SERVICE_ACCOUNT={"access_token":"ya29.a0AS3H6Nx...","refresh_token":"1//09FtpJYpxOd...","scope":"https://www.googleapis.com/auth/cloud-platform ...","token_type":"Bearer","id_token":"eyJhbGciOiJSUzI1NiIs...","expiry_date":1750927763467}
 
-# Optional: Google Cloud Project ID (auto-discovered if not set)
+# [선택] Google Cloud 프로젝트 ID (설정하지 않으면 자동 감지됨)
 # GEMINI_PROJECT_ID=your-project-id
 
-# Optional: API key for authentication (if not set, API is public)
-# When set, clients must include "Authorization: Bearer <your-api-key>" header
-# Example: sk-1234567890abcdef1234567890abcdef
-OPENAI_API_KEY=sk-your-secret-api-key-here
+# [선택] 인증을 위한 Gemini API 키 (설정하지 않으면 API가 공개 상태가 됩니다)
+# 설정 시, 클라이언트는 "Authorization: Bearer <your-api-key>" 또는 "x-goog-api-key: <your-api-key>" 헤더를 포함해야 합니다.
+GEMINI_API_KEY=your-secret-api-key-here
 
 # Optional: Enable fake thinking output for thinking models (set to "true" to enable)
 # When enabled, models marked with thinking: true will generate synthetic reasoning text
-# before providing their actual response, similar to OpenAI's o3 model behavior
+# before providing their actual response
 ENABLE_FAKE_THINKING=true
 
 # Optional: Enable real Gemini thinking output (set to "true" to enable)
