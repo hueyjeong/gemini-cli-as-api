@@ -6,7 +6,7 @@ import { geminiApiKeyAuth } from "./middlewares/auth";
 import { loggingMiddleware } from "./middlewares/logging";
 
 /**
- * Gemini CLI Native API Worker
+ * Gemini CLI as API Worker
  *
  * A Cloudflare Worker that provides Gemini-native API endpoints
  * for Google's Gemini models via the Gemini CLI OAuth flow.
@@ -52,7 +52,7 @@ app.get("/", (c: Context<{ Bindings: Env }>) => {
 	const requiresGeminiAuth = !!c.env.GEMINI_API_KEY;
 
 	return c.json({
-		name: "Gemini CLI Native API Worker",
+		name: "Gemini CLI as API Worker",
 		description: "Gemini-native API for Google Gemini models via OAuth",
 		version: "1.1.0",
 		authentication: {

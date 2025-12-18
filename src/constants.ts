@@ -1,5 +1,5 @@
 /**
- * Constants for the Gemini CLI Native API Worker
+ * Constants for the Gemini CLI as API Worker
  */
 
 // Thinking budget constants
