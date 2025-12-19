@@ -207,6 +207,7 @@ export class GeminiApiClient {
 	 * Logs request body for debugging with masked text content.
 	 */
 	private logRequestBodyForDebug(streamRequest: Record<string, unknown>, statusCode: number): void {
+		return;
 		try {
 			const debugRequest = JSON.parse(JSON.stringify(streamRequest));
 			const req = debugRequest.request as any;
@@ -306,7 +307,7 @@ export class GeminiApiClient {
 		const generationConfig: Record<string, unknown> = {};
 
 		if (request.generationConfig) {
-			console.log("[GeminiAPI] generationConfig received:", JSON.stringify(request.generationConfig, null, 2));
+			//console.log("[GeminiAPI] generationConfig received:", JSON.stringify(request.generationConfig, null, 2));
 			const gc = request.generationConfig as any;
 			// Copy all properties from request.generationConfig to ensure nothing is missed
 			// This handles both camelCase and snake_case properties that might be sent by clients
