@@ -28,6 +28,7 @@ This API has been successfully tested with:
 - 🆓 **Free Tier Access** - Leverage Google's free tier through Code Assist API
 - 📡 **Real-time Streaming** - Server-sent events for live responses
 - 🎭 **Multiple Models** - Access to latest Gemini models including experimental ones
+- 🐳 **Docker Ready** - Production-ready multi-stage Docker builds
 
 ## 🤖 Supported Models
 
@@ -62,6 +63,7 @@ You need OAuth2 credentials from a Google account that has accessed Gemini. The 
    ```bash
    gemini
    ```
+
 3. **Authenticate with Google**:
    
    Select `● Login with Google`.
@@ -95,20 +97,8 @@ You need OAuth2 credentials from a Google account that has accessed Gemini. The 
 
 ### Step 2: Configure Environment Variables
 
-Create a `.dev.vars` file in the project root or set environment variables:
-```
+Create a `.dev.vars` file in the project root:
 
-Note the namespace ID returned.
-Update `wrangler.toml` with your KV namespace ID:
-```toml
-kv_namespaces = [
-  { binding = "GEMINI_CLI_KV", id = "your-kv-namespace-id" }
-]
-```
-
-### Step 3: Environment Setup
-
-Create a `.dev.vars` file:
 ```bash
 # Required: OAuth2 credentials JSON from Gemini CLI authentication
 GCP_SERVICE_ACCOUNT={"access_token":"ya29...","refresh_token":"1//...","scope":"...","token_type":"Bearer","id_token":"eyJ...","expiry_date":1750927763467}
@@ -117,28 +107,46 @@ GCP_SERVICE_ACCOUNT={"access_token":"ya29...","refresh_token":"1//...","scope":"
 # When set, clients must include "x-goog-api-key: <your-api-key>" header
 GEMINI_API_KEY=your-secret-api-key-here
 
+# Optional: Google Cloud Project ID (auto-discovered if not set)
+GEMINI_PROJECT_ID=your-project-id
+
 # Optional: Enable automatic model fallback on rate limits (429/503)
 ENABLE_AUTO_MODEL_SWITCHING=true
+
+# Optional: HTTP Proxy (if needed)
+HTTP_PROXY=http://proxy-host:port
 ```
 
-### Step 4: Deploy
+### Step 3: Run with Docker (Recommended)
+
+```bash
+# Build and start the container
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop the container
+docker-compose down
+```
+
+The API will be available at `http://localhost:8787`
+
+### Step 4: Run Locally (Development)
 
 ```bash
 # Install dependencies
-npm install
+bun install
 
-# Deploy to Cloudflare Workers
-npm run deploy
-
-# Or run locally for development
-npm run dev
+# Run in development mode
+bun run dev
 ```
 
 ## 📡 API Endpoints
 
 ### Base URL
 ```
-https://your-worker.your-subdomain.workers.dev
+http://localhost:8787
 ```
 
 ### List Models
@@ -146,29 +154,65 @@ https://your-worker.your-subdomain.workers.dev
 GET /gemini/models
 ```
 
+**Response:**
+```json
+{
+  "models": [
+    {
+      "name": "models/gemini-3-pro-preview",
+      "displayName": "gemini-3-pro-preview",
+      "description": "Google's Gemini 3.0 Pro Preview model",
+      "inputTokenLimit": 1000000,
+      "outputTokenLimit": 65536,
+      "supportedGenerationMethods": ["generateContent", "streamGenerateContent"]
+    }
+  ]
+}
+```
+
 ### Generate Content
 ```http
 POST /gemini/models/{model}:generateContent
+Content-Type: application/json
+
+{
+  "contents": [
+    {
+      "role": "user",
+      "parts": [{ "text": "Hello, how are you?" }]
+    }
+  ]
+}
 ```
 
 ### Stream Generate Content
 ```http
 POST /gemini/models/{model}:streamGenerateContent
+Content-Type: application/json
+
+{
+  "contents": [
+    {
+      "role": "user",
+      "parts": [{ "text": "Tell me a story" }]
+    }
+  ]
+}
 ```
 
 ## 🏗️ How It Works
 
 ```mermaid
 graph TD
-    A[Client Request] --> B[Cloudflare Worker]
-    B --> C{Token in KV Cache?}
+    A[Client Request] --> B[Bun Server]
+    B --> C{Token in File Cache?}
     C -->|Yes| D[Use Cached Token]
     C -->|No| E[Check Environment Token]
     E --> F{Token Valid?}
     F -->|Yes| G[Cache & Use Token]
-    F -->|No| H[Refresh Token]
+    F -->|No| H[Refresh Token via Proxy]
     H --> I[Cache New Token]
-    D --> J[Call Gemini API]
+    D --> J[Call Gemini API via Proxy]
     G --> J
     I --> J
     J --> K[Stream Response]
@@ -181,15 +225,48 @@ graph TD
 The API supports automatic fallback to faster/lighter models when the primary model hits rate limits (429) or service unavailability (503).
 
 ### How it works:
-1. If a request to a Pro model fails with a 429 or 503 error.
-2. The system checks if `ENABLE_AUTO_MODEL_SWITCHING=true` is set.
-3. It automatically retries the request using a pre-configured Flash model.
-4. A notification message is prepended to the response to inform the user about the switch.
+1. If a request to a Pro model fails with a 429 or 503 error
+2. The system checks if `ENABLE_AUTO_MODEL_SWITCHING=true` is set
+3. It automatically retries the request using a pre-configured Flash model
+4. A notification message is prepended to the response to inform the user about the switch
 
 ### Default Mappings:
 - `gemini-3-pro-preview` → `gemini-3-flash-preview`
 - `gemini-2.5-pro` → `gemini-2.5-flash`
 
+## 🐳 Docker Architecture
+
+### Multi-stage Build
+- **Build Stage**: Installs dependencies and prepares source code
+- **Production Stage**: Minimal Alpine-based image with Bun runtime
+- **Size**: ~150-200MB (vs 2.7GB with Node.js)
+- **Memory**: ~1.5GB per instance (vs 3.4GB)
+
+### Proxy Support
+- Uses `undici` ProxyAgent for HTTP_PROXY support
+- No iptables/redsocks complexity
+- Works seamlessly with corporate proxies
+
+## 🔧 Development
+
+```bash
+# Install dependencies
+bun install
+
+# Run locally
+bun run dev
+
+# Format code
+bun run format
+
+# Lint code
+bun run lint
+```
+
 ## 📄 License
 
 This codebase is provided for personal use and self-hosting only.
+
+## 🙏 Credits
+
+Based on [gemini-cli-openai](https://github.com/GewoonJaap/gemini-cli-openai) by GewoonJaap.
