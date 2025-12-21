@@ -15,6 +15,7 @@ console.log(`[Bun Server] HTTPS_PROXY: ${process.env.HTTPS_PROXY || "not set"}`)
 export default {
 	port,
 	fetch: app.fetch,
+	idleTimeout: 255, // 300 seconds (5 minutes) to prevent timeouts during long LLM generations
 	// Bun automatically respects HTTP_PROXY and HTTPS_PROXY environment variables
 };
 
