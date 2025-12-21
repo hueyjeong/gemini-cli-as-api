@@ -1,22 +1,19 @@
 import { AUTO_SWITCH_MODEL_MAP, RATE_LIMIT_STATUS_CODES } from "../constants";
-import { Env } from "../types";
 
 /**
  * Helper class for handling automatic model switching on rate limit errors.
  * Provides centralized logic for detecting rate limits and managing fallback models.
  */
 export class AutoModelSwitchingHelper {
-	private env: Env;
-
-	constructor(env: Env) {
-		this.env = env;
+	constructor() {
+		// Uses process.env directly for Bun compatibility
 	}
 
 	/**
 	 * Checks if auto model switching is enabled via environment variable.
 	 */
 	isEnabled(): boolean {
-		return this.env.ENABLE_AUTO_MODEL_SWITCHING === "true";
+		return process.env.ENABLE_AUTO_MODEL_SWITCHING === "true";
 	}
 
 	/**

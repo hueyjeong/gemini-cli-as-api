@@ -12,6 +12,7 @@ import {
 	GeminiNativeStreamChunk,
 	GeminiNativePart
 } from "./types/gemini-native";
+import { proxyAwareFetch } from "./utils/proxy-aware-fetch";
 
 const CONNECTION_TIMEOUT_MS = 100000; // 100 seconds for initial connection
 const IDLE_TIMEOUT_MS = 100000; // 100 seconds for stream idle time
@@ -26,23 +27,22 @@ interface ProjectDiscoveryResponse {
  * Manages project discovery, streaming, and response parsing.
  */
 export class GeminiApiClient {
-	private env: Env;
 	private authManager: AuthManager;
 	private projectId: string | null = null;
 	private autoSwitchHelper: AutoModelSwitchingHelper;
 
-	constructor(env: Env, authManager: AuthManager) {
-		this.env = env;
+	constructor(_env: Env, authManager: AuthManager) {
+		// env parameter kept for backward compatibility but process.env is used directly
 		this.authManager = authManager;
-		this.autoSwitchHelper = new AutoModelSwitchingHelper(env);
+		this.autoSwitchHelper = new AutoModelSwitchingHelper();
 	}
 
 	/**
 	 * Discovers the Google Cloud project ID. Uses the environment variable if provided.
 	 */
 	public async discoverProjectId(): Promise<string> {
-		if (this.env.GEMINI_PROJECT_ID) {
-			return this.env.GEMINI_PROJECT_ID;
+		if (process.env.GEMINI_PROJECT_ID) {
+			return process.env.GEMINI_PROJECT_ID;
 		}
 		if (this.projectId) {
 			return this.projectId;
@@ -396,7 +396,7 @@ export class GeminiApiClient {
 		if (request.safetySettings && request.safetySettings.length > 0) {
 			(streamRequest.request as Record<string, unknown>).safetySettings = request.safetySettings;
 		} else {
-			const safetySettings = GenerationConfigValidator.createSafetySettings(this.env);
+			const safetySettings = GenerationConfigValidator.createSafetySettings();
 			if (safetySettings.length > 0) {
 				(streamRequest.request as Record<string, unknown>).safetySettings = safetySettings;
 			}
@@ -418,7 +418,7 @@ export class GeminiApiClient {
 		const startTime = Date.now();
 
 		try {
-			const response = await fetch(`${CODE_ASSIST_ENDPOINT}/${CODE_ASSIST_API_VERSION}:streamGenerateContent?alt=sse`, {
+			const response = await proxyAwareFetch(`${CODE_ASSIST_ENDPOINT}/${CODE_ASSIST_API_VERSION}:streamGenerateContent?alt=sse`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",

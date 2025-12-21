@@ -1,6 +1,6 @@
 # Docker Development Guide
 
-This document provides instructions for running the Gemini CLI OpenAI Worker in a Docker environment for local development.
+This document provides instructions for running the Gemini CLI API Server with Bun runtime in a Docker environment for local development and production.
 
 ## Prerequisites
 
@@ -40,7 +40,7 @@ This document provides instructions for running the Gemini CLI OpenAI Worker in 
 | `npm run docker:dev` | Build and start with logs (recommended for development) |
 | `npm run docker:start` | Start existing containers |
 | `npm run docker:stop` | Stop running containers |
-| `npm run docker:clean` | Stop containers and remove volumes (clears KV data) |
+| `npm run docker:clean` | Stop containers and remove volumes (clears cached data) |
 | `npm run docker:logs` | View container logs |
 | `npm run docker:shell` | Open a shell inside the container |
 
@@ -48,25 +48,25 @@ This document provides instructions for running the Gemini CLI OpenAI Worker in 
 
 ### Architecture
 
-- **Container**: Alpine Linux with Node.js 20
-- **Web Framework**: Hono running on Cloudflare Workers runtime (via miniflare)
-- **Development Server**: Wrangler dev with miniflare for local simulation
-- **Storage**: KV data persisted to Docker volume for data persistence
+- **Container**: Alpine Linux with Bun runtime
+- **Web Framework**: Hono with native Bun server
+- **Runtime**: Bun (native TypeScript execution, no compilation needed)
+- **Storage**: File-based token caching in Docker volume for persistence
 
 ### File Structure in Container
 
 ```
 /app/
-├── src/                 # Your TypeScript source code
-├── .dev.vars           # Environment variables (injected by wrangler)
-├── wrangler.toml       # Cloudflare Worker configuration
-├── package.json        # Node.js dependencies
-└── .mf/kv/            # Persistent KV storage (Docker volume)
+├── src/                 # Your TypeScript source code (executed natively by Bun)
+├── .dev.vars           # Environment variables
+├── package.json        # Dependencies
+└── data/               # Persistent file-based cache (Docker volume)
+    └── token-cache.json  # OAuth token cache
 ```
 
 ### Environment Variables
 
-Your `.dev.vars` file is automatically loaded by `wrangler dev` inside the container. The following variables are supported:
+Your `.dev.vars` file is automatically loaded by Bun inside the container. The following variables are supported:
 
 - `GOOGLE_OAUTH_CREDS_JSON`: Required Google OAuth credentials
 - `GEMINI_PROJECT_ID`: Optional Google Cloud Project ID
@@ -77,7 +77,7 @@ Your `.dev.vars` file is automatically loaded by `wrangler dev` inside the conta
 
 ### Persistent Data
 
-KV data is stored in a Docker volume named `gemini_kv_data`, which persists across container restarts. To clear all data:
+Token cache is stored in `/app/data/token-cache.json` inside the container, which persists across container restarts via Docker volumes. To clear all data:
 
 ```bash
 npm run docker:clean
@@ -87,16 +87,18 @@ npm run docker:clean
 
 ### 1. Code Changes
 
-The container mounts your local source code directory, so changes are reflected immediately thanks to wrangler's hot reloading:
+The container runs TypeScript files directly with Bun's native support:
 
 1. Edit files in `src/`
-2. Save changes
-3. Container automatically restarts and reflects changes
+2. Save changes  
+3. Restart the container to reflect changes: `npm run docker:dev`
 4. Test at `http://localhost:8787`
+
+For development with hot reload, you can run locally with: `bun run dev`
 
 ### 2. Adding Dependencies
 
-If you add new npm dependencies:
+If you add new dependencies (using Bun):
 
 ```bash
 # Stop the container

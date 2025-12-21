@@ -117,35 +117,36 @@ export class GenerationConfigValidator {
 
 	/**
 	 * Creates safety settings configuration for Gemini API.
+	 * Uses process.env directly for Bun compatibility.
 	 */
-	static createSafetySettings(env: Env): Array<{ category: string; threshold: SafetyThreshold }> {
+	static createSafetySettings(): Array<{ category: string; threshold: SafetyThreshold }> {
 		const safetySettings: Array<{ category: string; threshold: SafetyThreshold }> = [];
 
-		if (env.GEMINI_MODERATION_HARASSMENT_THRESHOLD) {
+		if (process.env.GEMINI_MODERATION_HARASSMENT_THRESHOLD) {
 			safetySettings.push({
 				category: GEMINI_SAFETY_CATEGORIES.HARASSMENT,
-				threshold: env.GEMINI_MODERATION_HARASSMENT_THRESHOLD
+				threshold: process.env.GEMINI_MODERATION_HARASSMENT_THRESHOLD as SafetyThreshold
 			});
 		}
 
-		if (env.GEMINI_MODERATION_HATE_SPEECH_THRESHOLD) {
+		if (process.env.GEMINI_MODERATION_HATE_SPEECH_THRESHOLD) {
 			safetySettings.push({
 				category: GEMINI_SAFETY_CATEGORIES.HATE_SPEECH,
-				threshold: env.GEMINI_MODERATION_HATE_SPEECH_THRESHOLD
+				threshold: process.env.GEMINI_MODERATION_HATE_SPEECH_THRESHOLD as SafetyThreshold
 			});
 		}
 
-		if (env.GEMINI_MODERATION_SEXUALLY_EXPLICIT_THRESHOLD) {
+		if (process.env.GEMINI_MODERATION_SEXUALLY_EXPLICIT_THRESHOLD) {
 			safetySettings.push({
 				category: GEMINI_SAFETY_CATEGORIES.SEXUALLY_EXPLICIT,
-				threshold: env.GEMINI_MODERATION_SEXUALLY_EXPLICIT_THRESHOLD
+				threshold: process.env.GEMINI_MODERATION_SEXUALLY_EXPLICIT_THRESHOLD as SafetyThreshold
 			});
 		}
 
-		if (env.GEMINI_MODERATION_DANGEROUS_CONTENT_THRESHOLD) {
+		if (process.env.GEMINI_MODERATION_DANGEROUS_CONTENT_THRESHOLD) {
 			safetySettings.push({
 				category: GEMINI_SAFETY_CATEGORIES.DANGEROUS_CONTENT,
-				threshold: env.GEMINI_MODERATION_DANGEROUS_CONTENT_THRESHOLD
+				threshold: process.env.GEMINI_MODERATION_DANGEROUS_CONTENT_THRESHOLD as SafetyThreshold
 			});
 		}
 

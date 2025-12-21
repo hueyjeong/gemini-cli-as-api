@@ -14,7 +14,7 @@ export const geminiApiKeyAuth: MiddlewareHandler<{ Bindings: Env }> = async (c, 
 	}
 
 	// If GEMINI_API_KEY is set in environment, require authentication
-	if (c.env.GEMINI_API_KEY) {
+	if (process.env.GEMINI_API_KEY) {
 		// Check x-goog-api-key header first (primary method)
 		let providedKey: string | undefined = c.req.header("x-goog-api-key");
 
@@ -47,7 +47,7 @@ export const geminiApiKeyAuth: MiddlewareHandler<{ Bindings: Env }> = async (c, 
 			);
 		}
 
-		if (providedKey !== c.env.GEMINI_API_KEY) {
+		if (providedKey !== process.env.GEMINI_API_KEY) {
 			return c.json(
 				{
 					error: {

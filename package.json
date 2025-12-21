@@ -1,16 +1,14 @@
 {
 	"name": "gemini-cli-as-api",
-	"version": "1.0.0",
-	"description": "Gemini Native API for Google Gemini models via OAuth",
+	"version": "1.1.0",
+	"description": "Gemini Native API for Google Gemini models via OAuth (Bun Runtime)",
 	"private": true,
 	"scripts": {
-		"deploy": "wrangler deploy",
-		"dev": "wrangler dev",
-		"dev:node": "tsx src/node-server.ts",
+		"dev": "bun run src/node-server.ts",
+		"start": "bun run src/node-server.ts",
 		"format": "prettier --write src",
 		"format:check": "prettier --check src",
-		"build": "wrangler deploy --dry-run --outdir=dist",
-		"lint": "eslint --ext .ts src && npm run tsc",
+		"lint": "eslint --ext .ts src",
 		"lint:fix": "eslint --ext .ts src --fix",
 		"docker:build": "docker-compose build",
 		"docker:dev": "docker-compose up --build",
@@ -18,25 +16,18 @@
 		"docker:stop": "docker-compose down",
 		"docker:clean": "docker-compose down -v && docker system prune -f",
 		"docker:logs": "docker-compose logs -f gemini-worker",
-		"docker:shell": "docker-compose exec gemini-worker sh",
-		"tsc": "tsc --noEmit --skipLibCheck"
+		"docker:shell": "docker-compose exec gemini-worker sh"
 	},
 	"dependencies": {
-		"@hono/node-server": "^1.13.7",
-		"global-agent": "^3.0.0",
-		"hono": "^4.9.2"
+		"hono": "^4.9.2",
+		"undici": "^6.20.1"
 	},
 	"devDependencies": {
-		"@cloudflare/workers-types": "^4.20250816.0",
-		"@eslint/eslintrc": "^3.3.1",
-		"@eslint/js": "^9.32.0",
 		"@types/node": "^24.3.0",
 		"@typescript-eslint/eslint-plugin": "^8.39.1",
 		"@typescript-eslint/parser": "^8.39.1",
 		"eslint": "^9.33.0",
 		"prettier": "^3.6.2",
-		"tsx": "^4.19.2",
-		"typescript": "^5.4.5",
-		"wrangler": "^4.30.0"
+		"typescript": "^5.4.5"
 	}
 }

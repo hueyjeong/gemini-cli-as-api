@@ -8,6 +8,7 @@ import {
 	TOKEN_BUFFER_TIME,
 	KV_TOKEN_KEY
 } from "./config";
+import { proxyAwareFetch } from "./utils/proxy-aware-fetch";
 
 // Auth-related interfaces
 interface TokenRefreshResponse {
@@ -38,33 +39,38 @@ interface TokenCacheInfo {
  * Manages token caching, refresh, and API calls.
  */
 export class AuthManager {
-	private env: Env;
 	private accessToken: string | null = null;
 
-	constructor(env: Env) {
-		this.env = env;
+	// Use process.env directly for Bun compatibility
+	private get GCP_SERVICE_ACCOUNT(): string | undefined {
+		return process.env.GCP_SERVICE_ACCOUNT;
+	}
+
+	constructor(_env?: Env) {
+		// env parameter kept for backward compatibility but not used
+		// Bun uses process.env directly
 	}
 
 	/**
-	 * Initializes authentication using OAuth2 credentials with KV storage caching.
+	 * Initializes authentication using OAuth2 credentials with file-based caching.
 	 */
 	public async initializeAuth(): Promise<void> {
-		if (!this.env.GCP_SERVICE_ACCOUNT) {
+		if (!this.GCP_SERVICE_ACCOUNT) {
 			throw new Error("`GCP_SERVICE_ACCOUNT` environment variable not set. Please provide OAuth2 credentials JSON.");
 		}
 
 		try {
-			// First, try to get a cached token from KV storage
+			// First, try to get a cached token from file storage
 			let cachedTokenData = null;
 
 			try {
-				const cachedToken = await this.env.GEMINI_CLI_KV.get(KV_TOKEN_KEY, "json");
+				const cachedToken = await this.getTokenFromFile();
 				if (cachedToken) {
 					cachedTokenData = cachedToken as CachedTokenData;
-					console.log("Found cached token in KV storage");
+					console.log("Found cached token in file storage");
 				}
-			} catch (kvError) {
-				console.log("No cached token found in KV storage or KV error:", kvError);
+			} catch (fileError) {
+				console.log("No cached token found in file storage or file error:", fileError);
 			}
 
 			// Check if cached token is still valid (with buffer)
@@ -91,7 +97,7 @@ export class AuthManager {
 			}
 
 			// Parse original credentials from environment
-			const oauth2Creds: OAuth2Credentials = JSON.parse(this.env.GCP_SERVICE_ACCOUNT);
+			const oauth2Creds: OAuth2Credentials = JSON.parse(this.GCP_SERVICE_ACCOUNT);
 
 			// Check if the original token is still valid
 			const timeUntilExpiry = oauth2Creds.expiry_date - Date.now();
@@ -100,8 +106,8 @@ export class AuthManager {
 				this.accessToken = oauth2Creds.access_token;
 				console.log(`Original token is valid for ${Math.floor(timeUntilExpiry / 1000)} more seconds`);
 
-				// Cache the token in KV storage
-				await this.cacheTokenInKV(oauth2Creds.access_token, oauth2Creds.expiry_date, oauth2Creds.refresh_token);
+				// Cache the token in file storage
+				await this.cacheTokenToFile(oauth2Creds.access_token, oauth2Creds.expiry_date, oauth2Creds.refresh_token);
 				return;
 			}
 
@@ -116,12 +122,12 @@ export class AuthManager {
 	}
 
 	/**
-	 * Refresh the OAuth token and cache it in KV storage.
+	 * Refresh the OAuth token and cache it in file storage.
 	 */
 	private async refreshAndCacheToken(refreshToken: string): Promise<void> {
 		console.log("Refreshing OAuth token...");
 
-		const refreshResponse = await fetch(OAUTH_REFRESH_URL, {
+		const refreshResponse = await proxyAwareFetch(OAUTH_REFRESH_URL, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/x-www-form-urlencoded"
@@ -156,14 +162,35 @@ export class AuthManager {
 			nextRefreshToken = refreshData.refresh_token;
 		}
 
-		// Cache the new token in KV storage
-		await this.cacheTokenInKV(refreshData.access_token, expiryTime, nextRefreshToken);
+		// Cache the new token in file storage
+		await this.cacheTokenToFile(refreshData.access_token, expiryTime, nextRefreshToken);
 	}
 
 	/**
-		* Cache the access token in KV storage.
-		*/
-	private async cacheTokenInKV(accessToken: string, expiryDate: number, refreshToken?: string): Promise<void> {
+	 * Get token from file storage (Bun compatible).
+	 */
+	private async getTokenFromFile(): Promise<CachedTokenData | null> {
+		try {
+			const tokenPath = "/app/data/token-cache.json";
+			
+			// Check if file exists (Bun-specific)
+			const file = Bun.file(tokenPath);
+			if (!(await file.exists())) {
+				return null;
+			}
+			
+			const content = await file.text();
+			return JSON.parse(content) as CachedTokenData;
+		} catch (error) {
+			console.error("Error reading token from file:", error);
+			return null;
+		}
+	}
+
+	/**
+	 * Cache the access token in file storage (Bun compatible).
+	 */
+	private async cacheTokenToFile(accessToken: string, expiryDate: number, refreshToken?: string): Promise<void> {
 		try {
 			const tokenData: CachedTokenData = {
 				access_token: accessToken,
@@ -172,49 +199,41 @@ export class AuthManager {
 				cached_at: Date.now()
 			};
 
-			// Calculate TTL
-			let ttlSeconds: number;
-
-			if (refreshToken) {
-				// If we have a refresh token, keep the cache for 30 days
-				ttlSeconds = 30 * 24 * 60 * 60; // 30 days
-			} else {
-				// Otherwise, cache for slightly less than the token expiry
-				ttlSeconds = Math.floor((expiryDate - Date.now()) / 1000) - 300; // 5 minutes buffer
-			}
-
-			if (ttlSeconds > 0) {
-				await this.env.GEMINI_CLI_KV.put(KV_TOKEN_KEY, JSON.stringify(tokenData), {
-					expirationTtl: ttlSeconds
-				});
-				console.log(`Token cached in KV storage with TTL of ${ttlSeconds} seconds`);
-			} else {
-				console.log("Token expires too soon, not caching in KV");
-			}
-		} catch (kvError) {
-			console.error("Failed to cache token in KV storage:", kvError);
+			const tokenPath = "/app/data/token-cache.json";
+			
+			// Ensure directory exists
+			await Bun.write(tokenPath, JSON.stringify(tokenData, null, 2));
+			console.log("Token cached in file storage");
+		} catch (fileError) {
+			console.error("Failed to cache token in file storage:", fileError);
 			// Don't throw an error here as the token is still valid, just not cached
 		}
 	}
 
 	/**
-	 * Clear cached token from KV storage.
+	 * Clear cached token from file storage.
 	 */
 	public async clearTokenCache(): Promise<void> {
 		try {
-			await this.env.GEMINI_CLI_KV.delete(KV_TOKEN_KEY);
-			console.log("Cleared cached token from KV storage");
-		} catch (kvError) {
-			console.log("Error clearing KV cache:", kvError);
+			const tokenPath = "/app/data/token-cache.json";
+			const file = Bun.file(tokenPath);
+			
+			if (await file.exists()) {
+				// Delete file by writing empty content (Bun doesn't have a direct delete API)
+				await Bun.write(tokenPath, "");
+				console.log("Cleared cached token from file storage");
+			}
+		} catch (fileError) {
+			console.log("Error clearing file cache:", fileError);
 		}
 	}
 
 	/**
-	 * Get cached token info from KV storage.
+	 * Get cached token info from file storage.
 	 */
 	public async getCachedTokenInfo(): Promise<TokenCacheInfo> {
 		try {
-			const cachedToken = await this.env.GEMINI_CLI_KV.get(KV_TOKEN_KEY, "json");
+			const cachedToken = await this.getTokenFromFile();
 			if (cachedToken) {
 				const tokenData = cachedToken as CachedTokenData;
 				const timeUntilExpiry = tokenData.expiry_date - Date.now();
@@ -241,7 +260,7 @@ export class AuthManager {
 	public async callEndpoint(method: string, body: Record<string, unknown>, isRetry: boolean = false): Promise<unknown> {
 		await this.initializeAuth();
 
-		const response = await fetch(`${CODE_ASSIST_ENDPOINT}/${CODE_ASSIST_API_VERSION}:${method}`, {
+		const response = await proxyAwareFetch(`${CODE_ASSIST_ENDPOINT}/${CODE_ASSIST_API_VERSION}:${method}`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
@@ -254,7 +273,7 @@ export class AuthManager {
 			if (response.status === 401 && !isRetry) {
 				console.log("Got 401 error, clearing token cache and retrying...");
 				this.accessToken = null; // Clear cached token
-				await this.clearTokenCache(); // Clear KV cache
+				await this.clearTokenCache(); // Clear file cache
 				await this.initializeAuth(); // This will refresh the token
 				return this.callEndpoint(method, body, true); // Retry once
 			}

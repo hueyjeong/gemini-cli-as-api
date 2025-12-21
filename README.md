@@ -2,7 +2,7 @@
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/gewoonjaap)
 
-Google's Gemini models Native API using Cloudflare Workers. Access Google's most advanced AI models through Gemini-native API patterns, powered by OAuth2 authentication and the same infrastructure that drives the official Gemini CLI.
+Google's Gemini models Native API using Bun runtime. Access Google's most advanced AI models through Gemini-native API patterns, powered by OAuth2 authentication and the same infrastructure that drives the official Gemini CLI.
 
 이 프로젝트는 https://github.com/GewoonJaap/gemini-cli-openai 를 기반으로 만들어졌습니다.
 
@@ -23,8 +23,8 @@ This API has been successfully tested with:
 - 🔧 **Tool Calling Support** - Function calling with Gemini API integration
 - 🧠 **Advanced Reasoning** - Support for Gemini's thinking capabilities with effort controls
 - 🛡️ **Content Safety** - Configurable Gemini moderation settings
-- ⚡ **Cloudflare Workers** - Global edge deployment with low latency
-- 🔄 **Smart Token Caching** - Intelligent token management with KV storage
+- ⚡ **Bun Runtime** - Fast TypeScript execution with native HTTP proxy support
+- 🔄 **Smart Token Caching** - Intelligent token management with file-based storage
 - 🆓 **Free Tier Access** - Leverage Google's free tier through Code Assist API
 - 📡 **Real-time Streaming** - Server-sent events for live responses
 - 🎭 **Multiple Models** - Access to latest Gemini models including experimental ones
@@ -44,8 +44,8 @@ This API has been successfully tested with:
 ### Prerequisites
 
 1. **Google Account** with access to Gemini
-2. **Cloudflare Account** with Workers enabled
-3. **Wrangler CLI** installed (`npm install -g wrangler`)
+2. **Docker** and **Docker Compose** installed (for containerized deployment)
+3. **Bun** installed (optional, for local development: `curl -fsSL https://bun.sh/install | bash`)
 
 ### Step 1: Get OAuth2 Credentials
 
@@ -93,11 +93,9 @@ You need OAuth2 credentials from a Google account that has accessed Gemini. The 
    }
    ```
 
-### Step 2: Create KV Namespace
+### Step 2: Configure Environment Variables
 
-```bash
-# Create a KV namespace for token caching
-wrangler kv namespace create "GEMINI_CLI_KV"
+Create a `.dev.vars` file in the project root or set environment variables:
 ```
 
 Note the namespace ID returned.

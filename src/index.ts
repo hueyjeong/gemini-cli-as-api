@@ -4,18 +4,20 @@ import { GeminiRoute } from "./routes/gemini";
 import { DebugRoute } from "./routes/debug";
 import { geminiApiKeyAuth } from "./middlewares/auth";
 import { loggingMiddleware } from "./middlewares/logging";
+import { proxyAwareFetch } from "./utils/proxy-aware-fetch";
 
 /**
- * Gemini CLI as API Worker
+ * Gemini CLI as API Server
  *
- * A Cloudflare Worker that provides Gemini-native API endpoints
+ * A Bun-powered server that provides Gemini-native API endpoints
  * for Google's Gemini models via the Gemini CLI OAuth flow.
  *
  * Features:
  * - Gemini-native API endpoints for LiteLLM gemini/ prefix support
- * - OAuth2 authentication with token caching via Cloudflare KV
+ * - OAuth2 authentication with file-based token caching
  * - Support for multiple Gemini models (2.5 Pro, 2.0 Flash, 1.5 Pro, etc.)
  * - Debug and testing endpoints for troubleshooting
+ * - Native TypeScript execution via Bun runtime
  */
 
 // Create the main Hono app
@@ -49,7 +51,7 @@ app.route("/gemini", GeminiRoute);
 
 // Root endpoint - basic info about the service
 app.get("/", (c: Context<{ Bindings: Env }>) => {
-	const requiresGeminiAuth = !!c.env.GEMINI_API_KEY;
+	const requiresGeminiAuth = !!process.env.GEMINI_API_KEY;
 
 	return c.json({
 		name: "Gemini CLI as API Worker",
@@ -83,12 +85,10 @@ app.get("/health", (c: Context) => {
 // IP check endpoint - fetches public IP from ifconfig.me to verify proxy is working
 app.get("/ip", async (c: Context<{ Bindings: Env }>) => {
 	try {
-		const proxyUrl = c.env.HTTP_PROXY;
+		const proxyUrl = process.env.HTTP_PROXY;
 
-		// redsocks handles transparent proxying at network level
-		// so we just do a normal fetch and the proxy will intercept it
-		// Using HTTPS with Google API domain to test proxy for Gemini API calls
-		const response = await fetch("https://api.ipify.org?format=json", {
+		// Using proxy-aware fetch to respect HTTP_PROXY environment variable
+		const response = await proxyAwareFetch("https://api.ipify.org?format=json", {
 			headers: { "User-Agent": "curl/7.64.1" }
 		});
 
